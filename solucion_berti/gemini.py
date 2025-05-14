@@ -7,7 +7,7 @@ from pathlib import Path
 import os
 
 # ---------- Configuration ----------
-BASE_PARAMS_FILE = Path("datos_base_mejorado - Sheet1.csv")
+BASE_PARAMS_FILE = Path("solucion_berti/datos_base_mejorado - Sheet1.csv")
 PARAMS_DIR = Path("parametros")
 
 T_WEEKS = 4
@@ -130,13 +130,13 @@ print(f"TRANSP_COST: {TRANSP_COST}")
 # ---------- 2. Load Demand Parameters ... ----------
 print("\n──────── Loading Demand Parameters & Week Groups ────────")
 demand_params_store_product_group = {1: {}, 2: {}}
-week_group_map_store_week = {1: {}, 2: {}}
+week_group_map_store_week_product = {store: {product: {} for product in Q_list} for store in L_list}
 
 for store_id in L_list:
-    param_file = PARAMS_DIR / f"parametros_capstone - param_tienda{store_id}.csv"
+    param_file = PARAMS_DIR / f"solucion_berti/Parametros/parametros_capstone - param_tienda{store_id}.csv"
     if not param_file.exists():
         # Try checking current working directory as a fallback
-        param_file_cwd = Path(f"parametros_capstone - param_tienda{store_id}.csv")
+        param_file_cwd = Path(f"solucion_berti/Parametros/parametros_capstone - param_tienda{store_id}.csv")
         if not param_file_cwd.exists():
             raise FileNotFoundError(f"Parameter file {param_file} (or {param_file_cwd}) not found.")
         else:
@@ -183,40 +183,33 @@ for store_id in L_list:
             'theta': theta_val
         }
 
-    group_file = PARAMS_DIR / f"parametros_capstone - grupos_tienda{store_id}.csv"
+    group_file = PARAMS_DIR / f"solucion_berti/Parametros/parametros_capstone - grupos_tienda{store_id}.csv"
     if not group_file.exists():
-        group_file_cwd = Path(f"parametros_capstone - grupos_tienda{store_id}.csv")
+        group_file_cwd = Path(f"solucion_berti/Parametros/parametros_capstone - grupos_tienda{store_id}.csv")
         if not group_file_cwd.exists():
             raise FileNotFoundError(f"Group mapping file {group_file} (or {group_file_cwd}) not found.")
         else:
             group_file = group_file_cwd
 
     df_groups = pd.read_csv(group_file)
-    if not {'nro_semana', 'grupo'}.issubset(df_groups.columns):
-         raise ValueError(f"File {group_file} missing 'nro_semana' or 'grupo' column.")
-
-    current_store_week_groups = {}
     for _, row in df_groups.iterrows():
         try:
+            product_str = str(row['producto']).replace("producto_", "")
+            product_id = int(product_str)
             week_num = int(row['nro_semana'])
             group_name = str(row['grupo']).lower()
-            if week_num not in current_store_week_groups:
-                current_store_week_groups[week_num] = group_name
-        except ValueError:
-            # print(f"Warning: Skipping row in {group_file} due to parsing error: {row}")
-            continue
-            
-    last_known_group_for_store = 'medio'
-    for t_planning_week in range(1, T_WEEKS + 1):
-        if t_planning_week in current_store_week_groups:
-            week_group_map_store_week[store_id][t_planning_week] = current_store_week_groups[t_planning_week]
-            last_known_group_for_store = current_store_week_groups[t_planning_week]
-        else:
-            week_group_map_store_week[store_id][t_planning_week] = last_known_group_for_store
 
+            if product_id not in Q_list:
+                continue
+
+            if week_num not in week_group_map_store_week_product[store_id][product_id]:
+                week_group_map_store_week_product[store_id][product_id][week_num] = group_name
+
+        except ValueError:
+            continue
 
 def get_demand_params_for_week(product_id, store_id, week_t):
-    group = week_group_map_store_week[store_id].get(week_t)
+    group = week_group_map_store_week_product[store_id][product_id].get(week_t)
     if not group:
         group = 'medio' 
     

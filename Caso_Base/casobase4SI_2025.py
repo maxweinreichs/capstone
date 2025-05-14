@@ -162,6 +162,13 @@ kpi_t1 = calcular_kpis_dynamic(demanda_t1_4sem, q_t1, o_t1, precios_t1, ingresos
 kpi_t2 = calcular_kpis_dynamic(demanda_t2_4sem, q_t2, o_t2, precios_t2, ingresos_t2, stock_base_t2, "Tienda 2")
 df_kpis = pd.DataFrame([kpi_t1, kpi_t2])
 
+# --- Crear hoja con inventarios iniciales ---
+inventarios_iniciales_df = pd.DataFrame({
+    "Producto": product_names,
+    "Inventario Inicial Tienda 1": [stock_base_t1[p] for p in product_names],
+    "Inventario Inicial Tienda 2": [stock_base_t2[p] for p in product_names]
+})
+
 # --- Exportar a Excel ---
 with pd.ExcelWriter("Caso_Base/KPIs_2025_Sim_4_Semanas.xlsx", engine="xlsxwriter") as writer:
     df_kpis.to_excel(writer, sheet_name="Resumen KPIs", index=False)
@@ -175,6 +182,8 @@ with pd.ExcelWriter("Caso_Base/KPIs_2025_Sim_4_Semanas.xlsx", engine="xlsxwriter
     o_t2.to_excel(writer, sheet_name="Órdenes T2", index=False)
     precios_t2.to_excel(writer, sheet_name="Precios T2", index=False)
     ingresos_t2.to_excel(writer, sheet_name="Ingresos T2", index=False)
+    inventarios_iniciales_df.to_excel(writer, sheet_name="Inventarios Iniciales", index=False)
+
 
 print("\n✅ Simulación completada. Archivo generado: KPIs_2025_Sim_4_Semanas.xlsx")
 print(df_kpis.round(2))
