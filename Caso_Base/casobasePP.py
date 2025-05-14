@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # Cargar archivo Excel
-file_path = "Datos v1.xlsx"
+file_path = "Caso_Base/Datos_v1.xlsx"
 xls = pd.ExcelFile(file_path)
 
 # Leer hojas de datos
