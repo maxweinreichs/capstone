@@ -1,0 +1,65 @@
+
+=======================
+🧠 PROMPT FINAL DE IMPLEMENTACIÓN: DRL + SAA + CSVs
+=======================
+
+🎯 OBJETIVO
+Implementar un sistema de pricing dinámico en retail que combine:
+- Aprendizaje por refuerzo profundo (DRL)
+- Simulación de demanda con sensibilidad al precio
+- Optimización semanal con Gurobi
+- Uso de múltiples escenarios (SAA) para robustez
+
+Este sistema busca encontrar políticas de precio que **superen el caso base**, sin necesidad de perfección, pero con lógica fundamentada y mejora medible.
+
+---
+
+📦 ARCHIVOS Y ESTRUCTURA
+
+Los archivos adjuntos contienen los datos reales y están organizados así:
+
+- **Parametros_Base.csv**: contiene los costos unitarios (`costo_unitario`), costos de inventario (`h`), precios iniciales, costos fijos de pedido (`K`) y capacidades (`IF`) para cada producto.
+
+- **parametros_distribucion_tienda_1.csv** y **parametros_distribuciones_tienda_2.csv**: parámetros de la función de demanda (`rho`, `alpha`, `theta`) por tipo de temporada (`alta`, `media`, `baja`) y producto para cada tienda.
+
+- **asociacion_semana_temporada.csv**: mapeo entre semana del año (0-51) y tipo de temporada (`alta`, `media`, `baja`) por producto y tienda.
+
+Estos deben reemplazar todos los valores generados aleatoriamente en el sistema.
+
+---
+
+🔄 FLUJO DE TRABAJO CON SAA
+
+Para cada acción (vector de precios) propuesta por el DRL:
+
+1. **Simular múltiples escenarios de demanda (N = 10, por ejemplo)** usando `simular_demanda()` con los parámetros cargados desde CSV.
+
+2. **Para cada escenario**, resolver el subproblema de optimización usando Gurobi (`resolver_subproblema()`), el cual determina cuánto pedir por producto y tienda bajo esa demanda.
+
+3. **Calcular el reward como el promedio** de las utilidades obtenidas en los N escenarios (SAA).
+
+Esto permite que el reward entregado al agente DRL sea una **aproximación robusta del valor esperado** de la utilidad bajo incertidumbre.
+
+---
+
+🔧 MEJORAS NECESARIAS EN IMPLEMENTACIÓN
+
+- `simular_demanda()` debe:
+  - Leer los parámetros por tienda y producto desde los archivos `parametros_distribucion_tienda_*.csv`.
+  - Leer el mapeo de temporada por semana desde `asociacion_semana_temporada.csv`.
+  - Usar estos valores según la semana actual para simular demanda.
+
+- `resolver_subproblema()`:
+  - Debe seguir igual, pero ser llamado múltiples veces para cada escenario en un loop.
+  - El retorno `utilidad_total` de cada uno se promedia y se entrega como reward.
+
+- El entorno `gym.Env` debe:
+  - En `step(action)`, ejecutar todo el proceso de SAA.
+  - Cargar una semana actual y su tipo de temporada para alimentar la simulación.
+
+---
+
+🎓 FINALIDAD
+
+Este prompt está diseñado para lanzar una implementación directa, modular y clara, con datos reales, múltiples escenarios, y una lógica de entrenamiento sólida y justificable. Basado en el documento “Algoritmo_Capstone-FINAL.pdf”, y ahora soportado por los archivos .csv reales entregados.
+

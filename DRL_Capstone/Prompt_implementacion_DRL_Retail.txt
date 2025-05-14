@@ -1,0 +1,115 @@
+
+=======================
+🧠 Prompt técnico de implementación
+=======================
+
+🎯 OBJETIVO
+Implementar un entorno de aprendizaje por refuerzo profundo (DRL) que permita a un agente aprender políticas de pricing óptimas en un contexto de retail con múltiples productos, tiendas y variaciones estacionales en la demanda.
+
+---
+
+📚 CONTEXTO MODELADO (extraído de 'Algoritmo_Capstone-FINAL.pdf')
+- Se busca maximizar una utilidad esperada basada en una función de demanda dependiente del precio.
+- La demanda del producto q en la tienda l durante el periodo t es:
+  s_qlt ∼ N(μ_qlt(p_qlt), σ^2_qlt)
+
+  Donde:
+  μ_qlt(p_qlt) = γ_qlt · ρ_qlt · e^(−α_qlt · p_qlt)
+
+- La varianza puede estimarse con:
+  σ^2_qlt = μ_qlt · (1 + μ_qlt / θ_qlt)
+
+- La utilidad depende de: ingresos por venta, costos de pedido, penalización por faltantes y costos de inventario.
+- En cada paso se resuelve un submodelo de optimización para encontrar la mejor cantidad a pedir dado un conjunto de precios propuestos por el DRL.
+- Para más detalles, revisar sección 2 y 2.1 del PDF citado.
+
+---
+
+🧱 ESTRUCTURA DEL ENTORNO
+
+- Productos: 9
+- Tiendas: 2
+- Horizonte: 1 semana por ahora (stateless)
+- Precio mínimo: p_qlt ≥ 1.05 · c_q (para garantizar al menos un 5% de margen)
+- Precio máximo: libre (simulación propone tope como c_q + 50)
+
+---
+
+🔧 A IMPLEMENTAR
+
+1. **Simulación de demanda**
+
+Para cada combinación producto-tienda:
+
+μ_ql = γ_ql · ρ_ql · e^(−α_ql · p_ql)
+
+donde:
+- γ_ql: estacionalidad (e.g., [1.2, 1.0, 0.8, 0.6])
+- ρ_ql: demanda base (e.g., 100)
+- α_ql: sensibilidad (e.g., 0.07)
+- θ_ql: parámetro de dispersión (e.g., 20)
+
+Luego se genera:
+s_ql ∼ N(μ_ql, σ^2_ql)
+
+2. **Submodelo de optimización usando Gurobi**
+
+Para cada producto q, tienda l:
+
+Maximizar:
+    min(s_ql, I_ql + o_ql) * p_ql 
+    - c_q * o_ql 
+    - K_q * y_ql 
+    - h_q * I_ql 
+    - d_ql * max(0, s_ql - I_ql - o_ql)
+
+Sujeto a:
+- o_ql ≥ 0
+- I_ql + o_ql ≤ IF_l
+- o_ql ≤ M * y_ql
+- Variables auxiliares: y_ql binaria (1 si hay pedido), I_ql inventario inicial (fijar en 30)
+
+Parámetros recomendados:
+- c_q: dado
+- h_q: 0.5
+- d_ql: 2.0
+- IF_l: 100
+- K_q: 5
+
+3. **Integración en entorno Gym**
+
+- Acción: vector p_ql (precios propuestos por el agente)
+- Reward: utilidad obtenida resolviendo el submodelo anterior con demanda simulada
+- Observación: dummy (stateless)
+- Reset: reinicia el entorno
+- Step:
+    - Recibe precios
+    - Simula demanda
+    - Resuelve optimización
+    - Devuelve reward
+
+4. **Entrenamiento DRL**
+
+```python
+from stable_baselines3 import PPO
+
+env = PrecioStatelessEnv()
+model = PPO("MlpPolicy", env, verbose=1)
+model.learn(total_timesteps=10000)
+```
+
+---
+
+📁 ARCHIVOS ESPERADOS
+
+- entorno_precio.py → contiene clase PrecioStatelessEnv
+- demanda.py → contiene función simular_demanda(p)
+- optimizador.py → contiene función resolver_subproblema(p, s)
+- main.py → entrena el modelo y testea resultados
+
+---
+
+💡 NOTAS FINALES
+- Este prompt está diseñado para iniciar implementación directa, sin redefinir el problema.
+- Basado en el documento técnico ‘Algoritmo_Capstone-FINAL.pdf’, que incluye función de demanda, función objetivo y restricciones exactas del modelo formal.
+
