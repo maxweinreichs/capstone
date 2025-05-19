@@ -52,13 +52,24 @@ class PrecioOptEnv(gym.Env):
         precios_propuestos_np = np.array(action).reshape(self.n_productos, self.n_tiendas)
         precios_propuestos_np = np.clip(precios_propuestos_np, self.action_space.low, self.action_space.high)
         
-        # Llamar al callable proporcionado, que ya sabe sobre el inventario y semana
-        # Este callable debe devolver la utilidad total del horizonte.
-        # Los otros datos (pedidos, inv_final) los manejará main.py directamente si es necesario.
+        # Añadir ruido aleatorio para forzar exploración durante el entrenamiento
+        if not hasattr(self, 'training_iteration'):
+            self.training_iteration = 0
+        self.training_iteration += 1
+        
+        # Añadir ruido que disminuye con el tiempo
+        if self.training_iteration < 50:  # Solo en las primeras iteraciones
+            noise_scale = 0.1 * (1.0 - self.training_iteration / 50.0)
+            noise = np.random.normal(0, noise_scale, precios_propuestos_np.shape)
+            precios_propuestos_np = np.clip(precios_propuestos_np + noise, 
+                                          self.action_space.low, 
+                                          self.action_space.high)
+        
+        # Llamar al callable proporcionado
         utilidad_horizonte = self.optimizer_callable(precios_propuestos_np)
         
         reward = float(utilidad_horizonte) 
-        terminated = True 
+        terminated = False 
         truncated = False 
         next_observation = np.array([0.0], dtype=np.float32)
         info = { 'utilidad_obtenida_horizonte': utilidad_horizonte }

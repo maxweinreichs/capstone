@@ -346,7 +346,28 @@ def calcular_resultados_optimizacion(precios_semana_actual_np,
 
     opt_duration = time.time() - opt_start_time
     if opt_duration > 1.5 or resultados_opt["utilidad_total_horizonte"] < -1e8 : 
-         print(f"[{timestamp} Optimizador.calcular_resultados_optimizacion({'EVAL' if use_eval_seed else 'TRAIN'})] FIN. Utilidad: {resultados_opt['utilidad_total_horizonte']:.2f}. Duración: {opt_duration:.2f}s. P0T0: {precios_semana_actual_np[0,0]:.2f}")
+        # Obtener los precios base para comparar
+        precios_base = static_params["precios_base_np"]
+        
+        # Crear un resumen de cambios de precios
+        cambios_precios = []
+        for q_idx in range(Q_val):
+            for l_idx in range(L_val):
+                precio_actual = precios_semana_actual_np[q_idx, l_idx]
+                precio_base = precios_base[q_idx, l_idx]
+                variacion = precio_actual - precio_base
+                variacion_pct = (variacion / precio_base) * 100 if precio_base > 0 else 0
+                
+                # Solo incluir si hay cambio significativo
+                if abs(variacion_pct) > 0.1:  # Umbral de 0.1% para considerar un cambio
+                    cambios_precios.append(f"P{q_idx}T{l_idx}: {precio_actual:.2f} (Δ{variacion_pct:+.2f}%)")
+        
+        # Mostrar todos los cambios sin limitación
+        cambios_str = ", ".join(cambios_precios)
+            
+        print(f"[{timestamp} Optimizador.calcular_resultados_optimizacion({'EVAL' if use_eval_seed else 'TRAIN'})] "
+              f"FIN. Utilidad: {resultados_opt['utilidad_total_horizonte']:.2f}. "
+              f"Duración: {opt_duration:.2f}s. Cambios: {cambios_str}")
     return resultados_opt
 
 

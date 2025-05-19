@@ -70,7 +70,8 @@ def train_drl_for_week(optimizer_caller_for_env, ruta_datos_gym, n_productos, n_
         "MlpPolicy", vec_env_drl, verbose=0, # verbose=1 para debug de PPO
         learning_rate=drl_params["lr"], n_steps=drl_params["n_steps_ppo"],
         batch_size=drl_params["batch_size_ppo"], n_epochs=4, gamma=0.99, 
-        ent_coef=drl_params["ent_coef_ppo"]
+        ent_coef=drl_params["ent_coef_ppo"],
+        clip_range=0.5  # Valor predeterminado es 0.2, aumentarlo permite cambios más grandes
     )
     model_drl.set_logger(drl_params["logger"]) # Usar el logger global o uno específico
 
@@ -99,14 +100,14 @@ def main():
     # --- PARÁMETROS GLOBALES DE DRL (por semana) ---
     drl_params_config = {
         "total_timesteps_week": 100, # Timesteps DRL para optimizar precios de UNA semana
-        "max_wall_time_per_week": 4 * 60, # Límite de tiempo para el DRL de UNA semana
+        "max_wall_time_per_week": 2 * 60, # Límite de tiempo para el DRL de UNA semana
         "eval_freq": 20,
         "n_eval_episodes": 5,
         "patience": 3, # Paciencia para StopTrainingOnNoModelImprovement
-        "lr": 0.0003,
-        "n_steps_ppo": 20,
-        "batch_size_ppo": 10,
-        "ent_coef_ppo": 0.005,
+        "lr": 0.001,
+        "n_steps_ppo": 32,
+        "batch_size_ppo": 16,
+        "ent_coef_ppo": 1,
     }
 
     os.makedirs("./sb3_logs/", exist_ok=True)
