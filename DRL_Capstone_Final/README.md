@@ -2,6 +2,101 @@
 
 Este proyecto implementa un sistema de optimización de precios para retail utilizando Aprendizaje por Refuerzo Profundo (DRL) y Aproximación por Promedio de Muestras (SAA).
 
+
+#Para correr el proyecto:
+
+
+
+
+          
+# Instrucciones para Configurar el Entorno Virtual
+
+## Requisitos Previos
+
+Para ejecutar este proyecto, necesitarás:
+
+- Python **3.10**
+- pip (gestor de paquetes de Python)
+- Acceso a terminal/línea de comandos
+
+## Pasos para Crear un Entorno Virtual
+
+### 1. Clonar el Repositorio
+
+```bash
+git clone <url-del-repositorio>
+cd DRL_Capstone_Final
+```
+
+### 2. Crear un Entorno Virtual con Python 3.10
+
+#### En macOS/Linux:
+
+```bash
+python3.10 -m venv venv_py310
+```
+
+#### En Windows:
+
+```bash
+python -m venv venv_py310
+```
+
+### 3. Activar el Entorno Virtual
+
+#### En macOS/Linux:
+
+```bash
+source venv_py310/bin/activate
+```
+
+#### En Windows:
+
+```bash
+venv_py310\Scripts\activate
+```
+
+### 4. Instalar Dependencias
+
+Una vez activado el entorno virtual, instala las dependencias necesarias:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Verificar la Instalación de Gurobi
+
+Este proyecto requiere Gurobi Optimizer. Asegúrate de tener una licencia válida y que esté correctamente instalado:
+
+```bash
+python -c "import gurobipy; print(gurobipy.gurobi.version())"
+```
+
+### 6. Ejecutar el Proyecto
+
+Con el entorno virtual activado, puedes ejecutar el proyecto:
+
+```bash
+python main.py
+```
+
+## Notas Importantes
+
+- El entorno virtual debe ser creado con Python 3.10 específicamente para asegurar la compatibilidad con todas las dependencias.
+- Para desactivar el entorno virtual cuando hayas terminado, simplemente ejecuta `deactivate` en la terminal.
+- Si encuentras problemas con alguna dependencia específica, puedes instalarla manualmente con `pip install nombre-del-paquete`.
+- Los resultados se guardarán en la carpeta `resultados/`.
+
+## Solución de Problemas
+
+Si encuentras errores relacionados con TensorFlow o PyTorch, asegúrate de que estás utilizando versiones compatibles con tu sistema operativo y hardware.
+
+Para más información sobre los requisitos y uso del sistema, consulta las secciones correspondientes en el README del proyecto.
+
+        Too many current requests. Your queue position is 1. Please wait for a while or switch to other models for a smoother experience.
+
+
+
 ## Descripción
 
 El sistema busca encontrar políticas óptimas de precios para múltiples productos en múltiples tiendas a lo largo de un horizonte de planificación (por defecto, 52 semanas). Utiliza datos reales de parámetros de demanda, costos y temporadas para simular escenarios realistas.
