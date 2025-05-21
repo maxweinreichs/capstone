@@ -55,9 +55,13 @@ class PrecioOptEnv(gym.Env):
         # Llamar al callable proporcionado, que ya sabe sobre el inventario y semana
         # Este callable debe devolver la utilidad total del horizonte.
         # Los otros datos (pedidos, inv_final) los manejará main.py directamente si es necesario.
+        # En entorno_precio.py, dentro del método step()
+        # ...
         utilidad_horizonte = self.optimizer_callable(precios_propuestos_np)
-        
-        reward = float(utilidad_horizonte) 
+
+        REWARD_SCALE_FACTOR = 100000.0 # O 1000000.0, experimentar
+        reward = float(utilidad_horizonte) / REWARD_SCALE_FACTOR
+        # ...
         terminated = True 
         truncated = False 
         next_observation = np.array([0.0], dtype=np.float32)

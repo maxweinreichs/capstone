@@ -2,3 +2,25 @@ venv_nuevo/
 __pycache__/
 *.pyc
 .DS_Store
+# Entorno virtual
+venv_py310/
+
+# Archivos de caché de Python
+*.py[cod]
+*$py.class
+
+# Distribución / empaquetado
+dist/
+build/
+*.egg-info/
+
+# Logs y resultados
+logs/
+*.log
+sb3_logs/
+logs_best_model/
+logs_eval/
+
+# Archivos temporales
+.env.DS_Store
+*copy/

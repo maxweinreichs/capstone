@@ -268,6 +268,12 @@ def solve_optimization_problem(p_qlt_horizon, mu_calculated_horizon, sigma_calcu
     }
 
     if model.status == GRB.OPTIMAL or model.status == GRB.SUBOPTIMAL:
+        rev = expected_revenue.getValue()
+        ord_cost = expected_ordering_cost.getValue()
+        fix_cost = expected_fixed_cost.getValue()
+        short_cost = expected_shortage_cost.getValue()
+        precios = p_qlt_horizon
+        print(f"DEBUG OPT: Rev={rev:.0f}, Ord={ord_cost:.0f}, Fix={fix_cost:.0f}, Short={short_cost:.0f}, TotalObj={model.ObjVal:.0f}, Precios={precios}")
         resultados["utilidad_total_horizonte"] = model.ObjVal
         # Extraer datos para la *primera semana del horizonte* (t_h=1)
         for q_idx in range(Q):
