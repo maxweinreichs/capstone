@@ -72,8 +72,9 @@ Este proyecto requiere Gurobi Optimizer. Asegúrate de tener una licencia válid
 python -c "import gurobipy; print(gurobipy.gurobi.version())"
 ```
 
-### 6. Ejecutar el Proyecto
+### 6. Eliminar carpetas y Ejecutar el Proyecto
 
+Se deben eliminar las carpetas sb3_logs, logs_best_model y logs_eval antes de cada ejecucion.
 Con el entorno virtual activado, puedes ejecutar el proyecto:
 
 ```bash
