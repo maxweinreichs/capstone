@@ -1,0 +1,56 @@
+﻿parametro;valor;Descripción
+Q;10;Número total de productos
+L;2;Número de tiendas
+N;200;Número de escenarios SAA
+IF_0;175000;Capacidad tienda 0
+IF_1;163000;Capacidad tienda 1
+c_0;28,792;Costo unitario producto 0
+c_1;20,792;Costo unitario producto 1
+c_2;31,992;Costo unitario producto 2
+c_3;52,792;Costo unitario producto 3
+c_4;25,592;Costo unitario producto 4
+c_5;44,8;Costo unitario producto 5
+c_6;62,993;Costo unitario producto 6
+c_7;46,4925;Costo unitario producto 7
+c_8;32,3919;Costo unitario producto 8
+c_9;17,592;Costo unitario producto 9
+K_0;530;Costo fijo orden producto 0
+K_1;530;Costo fijo orden producto 1
+K_2;530;Costo fijo orden producto 2
+K_3;320;Costo fijo orden producto 3
+K_4;530;Costo fijo orden producto 4
+K_5;530;Costo fijo orden producto 5
+K_6;780;Costo fijo orden producto 6
+K_7;530;Costo fijo orden producto 7
+K_8;530;Costo fijo orden producto 8
+K_9;530;Costo fijo orden producto 9
+I_inicial_0_0;3404;Inventario inicial (prod 0, tienda 0)
+I_inicial_0_1;4121;Inventario inicial (prod 0, tienda 1)
+I_inicial_1_0;8666;Inventario inicial (prod 1, tienda 0)
+I_inicial_1_1;10096;Inventario inicial (prod 1, tienda 1)
+I_inicial_2_0;5695;Inventario inicial (prod 2, tienda 0)
+I_inicial_2_1;5021;Inventario inicial (prod 2, tienda 1)
+I_inicial_3_0;2235;Inventario inicial (prod 3, tienda 0)
+I_inicial_3_1;1721;Inventario inicial (prod 3, tienda 1)
+I_inicial_4_0;12503;Inventario inicial (prod 4, tienda 0)
+I_inicial_4_1;9719;Inventario inicial (prod 4, tienda 1)
+I_inicial_5_0;3345;Inventario inicial (prod 5, tienda 0)
+I_inicial_5_1;3205;Inventario inicial (prod 5, tienda 1)
+I_inicial_6_0;6582;Inventario inicial (prod 6, tienda 0)
+I_inicial_6_1;7579;Inventario inicial (prod 6, tienda 1)
+I_inicial_7_0;5240;Inventario inicial (prod 7, tienda 0)
+I_inicial_7_1;5087;Inventario inicial (prod 7, tienda 1)
+I_inicial_8_0;6206;Inventario inicial (prod 8, tienda 0)
+I_inicial_8_1;5817;Inventario inicial (prod 8, tienda 1)
+I_inicial_9_0;10813;Inventario inicial (prod 9, tienda 0)
+I_inicial_9_1;13811;Inventario inicial (prod 9, tienda 1)
+MinOrder_0;300;Mínimo de pedido producto 0
+MinOrder_1;700;Mínimo de pedido producto 1
+MinOrder_2;500;Mínimo de pedido producto 2
+MinOrder_3;260;Mínimo de pedido producto 3
+MinOrder_4;900;Mínimo de pedido producto 4
+MinOrder_5;350;Mínimo de pedido producto 5
+MinOrder_6;1000;Mínimo de pedido producto 6
+MinOrder_7;450;Mínimo de pedido producto 7
+MinOrder_8;450;Mínimo de pedido producto 8
+MinOrder_9;900;Mínimo de pedido producto 9
