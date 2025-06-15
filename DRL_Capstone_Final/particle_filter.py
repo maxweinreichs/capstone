@@ -67,11 +67,12 @@ def particle_filter_optimization_multi_resample(n_particles, n_productos, n_tien
     """
     Advanced particle filter with multi-stage resampling policy.
     
-    Implementa la política de resampling proporcional:
-    - Inicial: ±100% variación, n_particles
-    - Round 1: ±20% variación, ~50% de n_particles (cada seleccionada se usa 2 veces)
-    - Round 2: ±10% variación, ~40% de n_particles (cada seleccionada se usa 2 veces)
-    - Round 3: ±5% variación, ~30% de n_particles (cada seleccionada se usa 2 veces)
+    Implementa la política de resampling:
+    - Inicial: ±100% variación, 50 partículas
+    - Round 1: ±20% variación, 25 partículas  
+    - Round 2: ±10% variación, 22 partículas
+    - Round 3: ±5% variación, 18 partículas
+    - Selección: 95 partículas
     
     Args:
         n_particles: Number of initial particles
@@ -87,21 +88,6 @@ def particle_filter_optimization_multi_resample(n_particles, n_productos, n_tien
     """
     
     print(f"    === Filtro de Partículas Multi-Resampling para Semana {semana_idx} ===")
-    
-    # Calcular cantidades proporcionales
-    round1_particles_count = int(n_particles * 0.5)  # 50% del inicial
-    round2_particles_count = int(n_particles * 0.4)  # 40% del inicial  
-    round3_particles_count = int(n_particles * 0.3)  # 30% del inicial
-    
-    # Calcular cuántas partículas base seleccionar (cada una se usa 2 veces)
-    round1_base_count = round1_particles_count // 2
-    round2_base_count = round2_particles_count // 2
-    round3_base_count = round3_particles_count // 2
-    
-    print(f"    📊 Configuración de rounds:")
-    print(f"      Round 1: {round1_particles_count} partículas ({round1_base_count} bases × 2)")
-    print(f"      Round 2: {round2_particles_count} partículas ({round2_base_count} bases × 2)")
-    print(f"      Round 3: {round3_particles_count} partículas ({round3_base_count} bases × 2)")
     
     # Etapa Inicial: ±100% variación
     print(f"    🔄 Etapa Inicial: Generando {n_particles} partículas con ±100% variación...")
@@ -120,71 +106,66 @@ def particle_filter_optimization_multi_resample(n_particles, n_productos, n_tien
     # Seleccionar mejores partículas para resampling
     sorted_indices = np.argsort(initial_scores)[::-1]  # Ordenar descendente
     
-    # Round 1: ±20% variación
-    print(f"    🔄 Round 1: Resampling con ±20% variación, {round1_particles_count} partículas...")
+    # Round 1: ±20% variación, 25 partículas
+    print(f"    🔄 Round 1: Resampling con ±20% variación, 25 partículas...")
     round1_particles = []
     round1_scores = []
     
-    # Seleccionar las mejores partículas base y usar cada una exactamente 2 veces
-    best_round1_indices = sorted_indices[:round1_base_count]
-    for base_idx in best_round1_indices:
+    # Usar las mejores 10 partículas como base para Round 1
+    best_10_indices = sorted_indices[:10]
+    for i in range(25):
+        base_idx = best_10_indices[i % 10]  # Rotar entre las mejores 10
         base_particle = initial_particles[base_idx]
-        # Generar 2 variaciones de cada partícula base
-        for _ in range(2):
-            p = generate_particle_from_base(base_particle, variation_factor=0.2)  # ±20%
-            score = evaluate_fn(p)
-            round1_particles.append(p)
-            round1_scores.append(score)
+        p = generate_particle_from_base(base_particle, variation_factor=0.2)  # ±20%
+        score = evaluate_fn(p)
+        round1_particles.append(p)
+        round1_scores.append(score)
     
     # Combinar con partículas iniciales y seleccionar mejores
     all_particles_r1 = initial_particles + round1_particles
     all_scores_r1 = initial_scores + round1_scores
     sorted_indices_r1 = np.argsort(all_scores_r1)[::-1]
     
-    # Round 2: ±10% variación
-    print(f"    🔄 Round 2: Resampling con ±10% variación, {round2_particles_count} partículas...")
+    # Round 2: ±10% variación, 22 partículas  
+    print(f"    🔄 Round 2: Resampling con ±10% variación, 22 partículas...")
     round2_particles = []
     round2_scores = []
     
-    # Seleccionar las mejores partículas base y usar cada una exactamente 2 veces
-    best_round2_indices = sorted_indices_r1[:round2_base_count]
-    for base_idx in best_round2_indices:
+    # Usar las mejores 8 partículas como base para Round 2
+    best_8_indices = sorted_indices_r1[:8]
+    for i in range(22):
+        base_idx = best_8_indices[i % 8]  # Rotar entre las mejores 8
         base_particle = all_particles_r1[base_idx]
-        # Generar 2 variaciones de cada partícula base
-        for _ in range(2):
-            p = generate_particle_from_base(base_particle, variation_factor=0.1)  # ±10%
-            score = evaluate_fn(p)
-            round2_particles.append(p)
-            round2_scores.append(score)
+        p = generate_particle_from_base(base_particle, variation_factor=0.1)  # ±10%
+        score = evaluate_fn(p)
+        round2_particles.append(p)
+        round2_scores.append(score)
     
     # Combinar todas las partículas
     all_particles_r2 = all_particles_r1 + round2_particles
     all_scores_r2 = all_scores_r1 + round2_scores
     sorted_indices_r2 = np.argsort(all_scores_r2)[::-1]
     
-    # Round 3: ±5% variación
-    print(f"    🔄 Round 3: Resampling con ±5% variación, {round3_particles_count} partículas...")
+    # Round 3: ±5% variación, 18 partículas
+    print(f"    🔄 Round 3: Resampling con ±5% variación, 18 partículas...")
     round3_particles = []
     round3_scores = []
     
-    # Seleccionar las mejores partículas base y usar cada una exactamente 2 veces
-    best_round3_indices = sorted_indices_r2[:round3_base_count]
-    for base_idx in best_round3_indices:
+    # Usar las mejores 6 partículas como base para Round 3
+    best_6_indices = sorted_indices_r2[:6]
+    for i in range(18):
+        base_idx = best_6_indices[i % 6]  # Rotar entre las mejores 6
         base_particle = all_particles_r2[base_idx]
-        # Generar 2 variaciones de cada partícula base
-        for _ in range(2):
-            p = generate_particle_from_base(base_particle, variation_factor=0.05)  # ±5%
-            score = evaluate_fn(p)
-            round3_particles.append(p)
-            round3_scores.append(score)
+        p = generate_particle_from_base(base_particle, variation_factor=0.05)  # ±5%
+        score = evaluate_fn(p)
+        round3_particles.append(p)
+        round3_scores.append(score)
     
     # Selección final: Combinar todas y seleccionar la mejor
     all_particles_final = all_particles_r2 + round3_particles
     all_scores_final = all_scores_r2 + round3_scores
     
-    total_evaluations = len(all_particles_final)
-    print(f"    📊 Total de partículas evaluadas: {total_evaluations}")
-    print(f"      Inicial: {n_particles}, R1: {len(round1_particles)}, R2: {len(round2_particles)}, R3: {len(round3_particles)}")
+    print(f"    📊 Total de partículas evaluadas: {len(all_particles_final)}")
     
     # Encontrar la mejor partícula
     best_idx = np.argmax(all_scores_final)
