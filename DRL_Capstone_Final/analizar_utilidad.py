@@ -88,7 +88,7 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
         df_demanda_real.rename(columns={'semana_año': 'semana', 'producto_idx': 'producto', 'tienda_idx': 'tienda'}, inplace=True)
         df = pd.merge(df, df_demanda_real[['semana', 'producto', 'tienda', 'demanda_real']], 
                       on=['semana', 'producto', 'tienda'], how='left')
-        df['demanda_real'] = df['demanda_real'].fillna(df['demanda_promedio_sem1_horizonte'])
+        df['demanda_estimacion_modelo'] = df['demanda_real'].fillna(df['demanda_promedio_sem1_horizonte'])
     else:
         print(" No se encontró demanda_real.csv. Usando demanda promedio.")
         df['demanda_real'] = df['demanda_promedio_sem1_horizonte']
@@ -98,6 +98,7 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
     inv_inicial_real = df.groupby(['tienda', 'producto'])['inventario_final_sem1_horizonte'].shift(1)
     df['inventario_inicial_real'] = inv_inicial_real.fillna(df['inventario_inicial_sem1_horizonte'])
     
+    df['pedido_optimo_sem1_horizonte'] = df['pedido_optimo_sem1_horizonte'].clip(lower=0)
     df['inventario_disponible'] = df['inventario_inicial_real'] + df['pedido_optimo_sem1_horizonte']
     df['ventas_reales'] = df[['inventario_disponible', 'demanda_real']].min(axis=1)
     df['inventario_final_real'] = df['inventario_disponible'] - df['ventas_reales']

@@ -90,12 +90,12 @@ def particle_filter_optimization_multi_resample(n_particles, n_productos, n_tien
     print(f"    === Filtro de Partículas Multi-Resampling para Semana {semana_idx} ===")
     
     # Etapa Inicial: ±100% variación
-    print(f"    🔄 Etapa Inicial: Generando {n_particles} partículas con ±100% variación...")
+    print(f"    🔄 Etapa Inicial: Generando {n_particles} partículas con ±30% variación...") ####
     initial_particles = []
     initial_scores = []
     
     for i in range(n_particles):
-        p = generate_particle(n_productos, n_tiendas, precios_base, variation_factor=1.0)  # ±100%
+        p = generate_particle(n_productos, n_tiendas, precios_base, variation_factor=0.3)  # ±100% ####
         score = evaluate_fn(p)
         initial_particles.append(p)
         initial_scores.append(score)
