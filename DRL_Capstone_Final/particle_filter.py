@@ -1,4 +1,18 @@
 import numpy as np
+from historical_prices import load_historical_prices, get_historical_prices_matrix
+
+# Variable global para almacenar los datos históricos (se carga una sola vez)
+_precios_historicos_global = None
+
+def initialize_historical_prices():
+    """
+    Inicializa los datos históricos una sola vez al inicio del programa.
+    """
+    global _precios_historicos_global
+    if _precios_historicos_global is None:
+        print("🔄 Cargando datos históricos por primera vez...")
+        _precios_historicos_global = load_historical_prices()
+    return _precios_historicos_global
 
 def generate_particle(n_productos, n_tiendas, precios_base, variation_factor=0.1):
     """
@@ -19,6 +33,31 @@ def generate_particle(n_productos, n_tiendas, precios_base, variation_factor=0.1
     variation_range = 1.0 + variation_factor
     variation = np.random.uniform(1.0 - variation_factor, variation_range, size=(n_productos, n_tiendas))
     return precios_base * variation
+
+def generate_particle_historical(n_productos, n_tiendas, precios_historicos, semana_objetivo, variation_factor=0.1):
+    """
+    Generate a single particle using historical prices as the starting point.
+    
+    Args:
+        n_productos: Number of products
+        n_tiendas: Number of stores  
+        precios_historicos: Historical prices matrix (n_productos, n_tiendas)
+        semana_objetivo: Week number for logging purposes
+        variation_factor: Factor for price variation (default 10%)
+        
+    Returns:
+        Particle matrix with price variations around historical prices
+    """
+    if precios_historicos is None:
+        print(f"⚠️  No hay precios históricos disponibles para semana {semana_objetivo}, usando precios por defecto")
+        # Fallback a precios por defecto si no hay datos históricos
+        precios_default = np.full((n_productos, n_tiendas), 30.0)
+        return generate_particle(n_productos, n_tiendas, precios_default, variation_factor)
+    
+    # Random variation around historical prices
+    variation_range = 1.0 + variation_factor
+    variation = np.random.uniform(1.0 - variation_factor, variation_range, size=(n_productos, n_tiendas))
+    return precios_historicos * variation
 
 def particle_filter_optimization(n_particles, n_productos, n_tiendas, precios_base, evaluate_fn):
     """
@@ -65,10 +104,10 @@ def particle_filter_optimization(n_particles, n_productos, n_tiendas, precios_ba
 
 def particle_filter_optimization_multi_resample(n_particles, n_productos, n_tiendas, precios_base, evaluate_fn, semana_idx):
     """
-    Advanced particle filter with multi-stage resampling policy.
+    Advanced particle filter with multi-stage resampling policy using historical prices.
     
     Implementa la política de resampling:
-    - Inicial: ±100% variación, 50 partículas
+    - Inicial: ±30% variación, 50 partículas (usando precios históricos)
     - Round 1: ±20% variación, 25 partículas  
     - Round 2: ±10% variación, 22 partículas
     - Round 3: ±5% variación, 18 partículas
@@ -78,9 +117,9 @@ def particle_filter_optimization_multi_resample(n_particles, n_productos, n_tien
         n_particles: Number of initial particles
         n_productos: Number of products
         n_tiendas: Number of stores
-        precios_base: Base prices matrix (n_productos, n_tiendas)
+        precios_base: Base prices matrix (n_productos, n_tiendas) - FALLBACK ONLY
         evaluate_fn: Function to evaluate particle utility
-        semana_idx: Week index for logging
+        semana_idx: Week index for historical price lookup
         
     Returns:
         best_particle: Matrix with best price configuration
@@ -89,13 +128,28 @@ def particle_filter_optimization_multi_resample(n_particles, n_productos, n_tien
     
     print(f"    === Filtro de Partículas Multi-Resampling para Semana {semana_idx} ===")
     
-    # Etapa Inicial: ±100% variación
-    print(f"    🔄 Etapa Inicial: Generando {n_particles} partículas con ±30% variación...") ####
+    # Inicializar datos históricos si no están cargados
+    precios_historicos_data = initialize_historical_prices()
+    
+    # Obtener precios históricos para la semana específica
+    precios_historicos_matrix = get_historical_prices_matrix(
+        precios_historicos_data, semana_idx, n_productos, n_tiendas
+    )
+    
+    if precios_historicos_matrix is not None:
+        print(f"    📈 Usando precios históricos como punto de partida para semana {semana_idx}")
+        precios_punto_partida = precios_historicos_matrix
+    else:
+        print(f"    ⚠️  Fallback: Usando precios base como punto de partida para semana {semana_idx}")
+        precios_punto_partida = precios_base
+    
+    # Etapa Inicial: ±30% variación usando precios históricos
+    print(f"    🔄 Etapa Inicial: Generando {n_particles} partículas con ±30% variación sobre precios históricos...")
     initial_particles = []
     initial_scores = []
     
     for i in range(n_particles):
-        p = generate_particle(n_productos, n_tiendas, precios_base, variation_factor=0.3)  # ±100% ####
+        p = generate_particle_historical(n_productos, n_tiendas, precios_punto_partida, semana_idx, variation_factor=0.3)
         score = evaluate_fn(p)
         initial_particles.append(p)
         initial_scores.append(score)

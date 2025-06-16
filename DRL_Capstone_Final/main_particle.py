@@ -12,22 +12,25 @@ from analizar_utilidad import calcular_utilidad_total, guardar_demanda_real_simu
 def optimize_prices_for_week(optimizer_caller, ruta_datos, n_productos, n_tiendas, static_params, current_inventory, semana_idx):
     """
     Optimize prices for a week using particle filter approach with multi-stage resampling.
+    Now uses historical prices as starting point based on the week number.
     """
     print(f"  Optimizando precios usando filtro de partículas con resampling múltiple...")
+    print(f"  📅 Semana objetivo: {semana_idx} - Usando precios históricos como punto de partida")
     
     N_PARTICLES = 50  # Reduced from 1000 to 50 for more efficient exploration with liberal policy
     
-    # Use base prices from static parameters
+    # Use base prices from static parameters (FALLBACK ONLY - historical prices will be used when available)
     precios_base = static_params["precios_base_np"]
     
     # Run particle filter optimization with multi-stage resampling
+    # IMPORTANTE: Ahora pasamos semana_idx para que use precios históricos
     best_prices, best_score = particle_filter_optimization_multi_resample(
         n_particles=N_PARTICLES,
         n_productos=n_productos,
         n_tiendas=n_tiendas,
-        precios_base=precios_base,
+        precios_base=precios_base,  # Solo usado como fallback
         evaluate_fn=optimizer_caller,
-        semana_idx=semana_idx
+        semana_idx=semana_idx  # CLAVE: Esto permite usar precios históricos
     )
     
     # Calculate detailed results for the best particle
