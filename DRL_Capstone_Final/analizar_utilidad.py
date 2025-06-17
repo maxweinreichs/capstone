@@ -30,10 +30,11 @@ def cargar_costos_desde_parametros(filepath):
     
     return df_costos
 
-def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, guardar_mu=True):
+def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, guardar_mu=True, ruta_csv="resultados/demanda_real.csv"):
     """
     Simula demanda real a partir de los parámetros mu y sigma, y la guarda como CSV.
     Si el archivo ya existe, agrega los nuevos datos al final.
+    Puedes cambiar la ruta del archivo usando 'ruta_csv'.
     """
     registros = []
 
@@ -59,9 +60,8 @@ def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, gua
 
     df_nueva = pd.DataFrame(registros)
 
-    # Ruta del archivo
-    ruta_csv = "resultados/demanda_real.csv"
-    os.makedirs("resultados", exist_ok=True)
+    # Crear carpeta si no existe
+    os.makedirs(os.path.dirname(ruta_csv), exist_ok=True)
 
     if os.path.exists(ruta_csv):
         df_antiguo = pd.read_csv(ruta_csv)
@@ -72,7 +72,8 @@ def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, gua
     df_total.to_csv(ruta_csv, index=False)
     print(f"✅ Demanda real simulada guardada en {ruta_csv}")
 
-def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETROS_FILE, exportar_csv=True):
+
+def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETROS_FILE, path_demanda_real=DEMANDA_REAL_PATH, exportar_csv=True):
     print("Cargando archivos...")
     df_modelo = pd.read_csv(path_csv, sep=';', decimal='.')
     df_costos = cargar_costos_desde_parametros(path_parametros)
@@ -81,10 +82,9 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
     df_modelo.rename(columns={'semana_año': 'semana', 'producto_idx': 'producto', 'tienda_idx': 'tienda'}, inplace=True)
     df = pd.merge(df_modelo, df_costos, on='producto', how='left')
 
-    # Usar demanda real si está disponible
-    if os.path.exists(DEMANDA_REAL_PATH):
+    if os.path.exists(path_demanda_real):
         print(" Usando demanda real desde CSV...")
-        df_demanda_real = pd.read_csv(DEMANDA_REAL_PATH)
+        df_demanda_real = pd.read_csv(path_demanda_real)
         df_demanda_real.rename(columns={'semana_año': 'semana', 'producto_idx': 'producto', 'tienda_idx': 'tienda'}, inplace=True)
         df = pd.merge(df, df_demanda_real[['semana', 'producto', 'tienda', 'demanda_real']], 
                       on=['semana', 'producto', 'tienda'], how='left')
@@ -124,7 +124,6 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
         'shortage_real': 'demanda_insatisfecha'
     }, inplace=True)
 
-    os.makedirs("resultados", exist_ok=True)
     if exportar_csv:
         df_final.to_csv(OUTPUT_FILE, sep=';', decimal=',', index=False, encoding='utf-8-sig')
         print(f"Resultado detallado guardado en: {OUTPUT_FILE}\n")
