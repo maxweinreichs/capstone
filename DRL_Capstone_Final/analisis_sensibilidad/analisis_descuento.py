@@ -12,9 +12,9 @@ TASA_COSTO_INVENTARIO = 0.10
 TASA_PENALIDAD_SHORTAGE = 0.10
 
 # Parámetros
-SEMANA_DESCUENTO = 3
+SEMANA_DESCUENTO = 1
 PORCENTAJE_DESCUENTO = 0.8
-CANTIDAD_PRODUCTOS_DESC = 10
+CANTIDAD_PRODUCTOS_DESC = 6
 
 # Archivos
 ARCHIVO_BASE = "resultados/resultados_detallados_final.csv"
@@ -86,7 +86,7 @@ for col in ['semana_año', 'producto_idx', 'tienda_idx']:
 for col in ['semana', 'producto', 'tienda']:
     df_modificado[col] = df_modificado[col].astype(int)
 
-# Merge doble para dejar demanda antes y después
+# Merge demanda antes y después
 df_demanda_original = df_demanda_original.rename(columns={
     'semana_año': 'semana', 'producto_idx': 'producto', 'tienda_idx': 'tienda', 'demanda_real': 'demanda_real_antes'
 })
@@ -95,27 +95,57 @@ df_demanda_final = df_demanda_final.rename(columns={
 })
 
 df_modificado = df_modificado.merge(df_demanda_original[['semana', 'producto', 'tienda', 'demanda_real_antes']],
-                                     on=['semana', 'producto', 'tienda'], how='left')
+                                    on=['semana', 'producto', 'tienda'], how='left')
 df_modificado = df_modificado.merge(df_demanda_final[['semana', 'producto', 'tienda', 'demanda_real_despues']],
-                                     on=['semana', 'producto', 'tienda'], how='left')
+                                    on=['semana', 'producto', 'tienda'], how='left')
 
-# ➕ Calcular shortage_despues (max(0, demanda_real_despues - inventario_disp))
-df_modificado['shortage_despues'] = (df_modificado['demanda_real_despues'] - df_modificado['inventario_disp']).clip(lower=0)
+# Calcular inventario_disp_despues semana a semana
+df_modificado['inventario_inicial_despues'] = np.nan
+df_modificado['inventario_disp_despues'] = np.nan
+df_modificado['ventas_reales_despues'] = np.nan
+df_modificado['inventario_final_despues'] = np.nan
 
-# Guardar CSV actualizado
+for (tienda, producto), sub_df in df_modificado.groupby(['tienda', 'producto']):
+    sub_df = sub_df.sort_values('semana').copy()
+    inventario_inicial = sub_df.iloc[0]['inventario_disp'] - sub_df.iloc[0]['orden_inv_opt']
+
+
+    inv_inic_list, inv_disp_list, ventas_list, inv_final_list = [], [], [], []
+
+    for i, row in sub_df.iterrows():
+        pedido = row['orden_inv_opt']
+        demanda = row['demanda_real_despues']
+        inv_disp = inventario_inicial + pedido
+        venta = min(inv_disp, demanda)
+        inv_final = inv_disp - venta
+
+        inv_inic_list.append(inventario_inicial)
+        inv_disp_list.append(inv_disp)
+        ventas_list.append(venta)
+        inv_final_list.append(inv_final)
+
+        inventario_inicial = inv_final  # para la próxima semana
+
+    idxs = sub_df.index
+    df_modificado.loc[idxs, 'inventario_inicial_despues'] = inv_inic_list
+    df_modificado.loc[idxs, 'inventario_disp_despues'] = inv_disp_list
+    df_modificado.loc[idxs, 'ventas_reales_despues'] = ventas_list
+    df_modificado.loc[idxs, 'inventario_final_despues'] = inv_final_list
+
+# Calcular shortage_despues
+df_modificado['shortage_despues'] = (df_modificado['demanda_real_despues'] - df_modificado['inventario_disp_despues']).clip(lower=0)
+
+# Guardar CSV actualizado con nueva columna
 df_modificado.to_csv(ARCHIVO_CSV_FINAL, sep=';', decimal=',', index=False)
 
-# Calcular utilidad
+# Calcular utilidad usando las variables _despues
 df_util = df_modificado.copy()
-df_util['ventas_reales'] = df_util[['inventario_disp', 'demanda_real_despues']].min(axis=1)
-df_util['inventario_final_real'] = df_util['inventario_disp'] - df_util['ventas_reales']
-df_util['shortage_real'] = df_util['demanda_real_despues'] - df_util['ventas_reales']
 df_util['binaria_ordenar'] = (df_util['orden_inv_opt'] > 1e-6).astype(int)
-df_util['venta'] = df_util['ventas_reales'] * df_util['precio_optimo']
+df_util['venta'] = df_util['ventas_reales_despues'] * df_util['precio_optimo']
 df_util['costo_orden'] = df_util['orden_inv_opt'] * df_util['costo_var']
 df_util['costo_orden_fijo'] = df_util['binaria_ordenar'] * df_util['costo_fijo']
-df_util['costo_inv'] = df_util['inventario_final_real'] * df_util['costo_var'] * TASA_COSTO_INVENTARIO
-df_util['costo_dem_ins'] = df_util['shortage_real'] * df_util['precio_optimo'] * TASA_PENALIDAD_SHORTAGE
+df_util['costo_inv'] = df_util['inventario_final_despues'] * df_util['costo_var'] * TASA_COSTO_INVENTARIO
+df_util['costo_dem_ins'] = df_util['shortage_despues'] * df_util['precio_optimo'] * TASA_PENALIDAD_SHORTAGE
 
 totales = df_util[['venta', 'costo_orden', 'costo_orden_fijo', 'costo_inv', 'costo_dem_ins']].sum()
 utilidad_total = totales['venta'] - totales[['costo_orden', 'costo_orden_fijo', 'costo_inv', 'costo_dem_ins']].sum()
