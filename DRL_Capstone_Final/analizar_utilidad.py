@@ -30,17 +30,20 @@ def cargar_costos_desde_parametros(filepath):
     
     return df_costos
 
-def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, guardar_mu=True, ruta_csv="resultados/demanda_real.csv"):
+def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, guardar_mu=True, ruta_csv=None):
     """
     Simula demanda real a partir de los parámetros mu y sigma, y la guarda como CSV.
     Si el archivo ya existe, agrega los nuevos datos al final.
     Puedes cambiar la ruta del archivo usando 'ruta_csv'.
     """
+    if ruta_csv is None:
+        ruta_csv = "resultados/demanda_real.csv"
+
     registros = []
 
     for (q, l, t_h), mu in mu_dict.items():
         if t_h != 1:
-            continue  # Solo guardar simulaciones de la primera semana del horizonte
+            continue
 
         sigma = sigma_dict.get((q, l, t_h), 0.0)
         muestras = [max(0, int(x)) for x in np.random.normal(mu, sigma, n_muestras)]
@@ -60,7 +63,6 @@ def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, gua
 
     df_nueva = pd.DataFrame(registros)
 
-    # Crear carpeta si no existe
     os.makedirs(os.path.dirname(ruta_csv), exist_ok=True)
 
     if os.path.exists(ruta_csv):
@@ -71,9 +73,9 @@ def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, gua
 
     df_total.to_csv(ruta_csv, index=False)
     print(f"✅ Demanda real simulada guardada en {ruta_csv}")
+    
 
-
-def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETROS_FILE, path_demanda_real=DEMANDA_REAL_PATH, exportar_csv=True):
+def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETROS_FILE, exportar_csv=True):
     print("Cargando archivos...")
     df_modelo = pd.read_csv(path_csv, sep=';', decimal='.')
     df_costos = cargar_costos_desde_parametros(path_parametros)
@@ -82,27 +84,58 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
     df_modelo.rename(columns={'semana_año': 'semana', 'producto_idx': 'producto', 'tienda_idx': 'tienda'}, inplace=True)
     df = pd.merge(df_modelo, df_costos, on='producto', how='left')
 
-    if os.path.exists(path_demanda_real):
-        print(" Usando demanda real desde CSV...")
-        df_demanda_real = pd.read_csv(path_demanda_real)
+    if os.path.exists(DEMANDA_REAL_PATH):
+        print("✅ Usando demanda real desde CSV...")
+        df_demanda_real = pd.read_csv(DEMANDA_REAL_PATH)
         df_demanda_real.rename(columns={'semana_año': 'semana', 'producto_idx': 'producto', 'tienda_idx': 'tienda'}, inplace=True)
         df = pd.merge(df, df_demanda_real[['semana', 'producto', 'tienda', 'demanda_real']], 
                       on=['semana', 'producto', 'tienda'], how='left')
-        df['demanda_estimacion_modelo'] = df['demanda_real'].fillna(df['demanda_promedio_sem1_horizonte'])
+        df['demanda_real'] = df['demanda_real'].fillna(df['demanda_promedio_sem1_horizonte'])
     else:
-        print(" No se encontró demanda_real.csv. Usando demanda promedio.")
+        print("⚠️ No se encontró demanda_real.csv. Usando demanda promedio.")
         df['demanda_real'] = df['demanda_promedio_sem1_horizonte']
 
     df.sort_values(by=['tienda', 'producto', 'semana'], inplace=True)
 
-    inv_inicial_real = df.groupby(['tienda', 'producto'])['inventario_final_sem1_horizonte'].shift(1)
-    df['inventario_inicial_real'] = inv_inicial_real.fillna(df['inventario_inicial_sem1_horizonte'])
-    
-    df['pedido_optimo_sem1_horizonte'] = df['pedido_optimo_sem1_horizonte'].clip(lower=0)
-    df['inventario_disponible'] = df['inventario_inicial_real'] + df['pedido_optimo_sem1_horizonte']
-    df['ventas_reales'] = df[['inventario_disponible', 'demanda_real']].min(axis=1)
-    df['inventario_final_real'] = df['inventario_disponible'] - df['ventas_reales']
-    df['shortage_real'] = df['demanda_real'] - df['ventas_reales']
+    df['inventario_inicial_real'] = np.nan
+    df['inventario_disp'] = np.nan
+    df['ventas_reales'] = np.nan
+    df['inventario_final_real'] = np.nan
+    df['shortage_real'] = np.nan
+
+    for (tienda, producto), df_sub in df.groupby(['tienda', 'producto']):
+        df_sub = df_sub.sort_values('semana').copy()
+        inventario_inicial = df_sub.iloc[0]['inventario_inicial_sem1_horizonte']
+
+        inventarios_iniciales = []
+        inventarios_disponibles = []
+        inventarios_finales = []
+        ventas = []
+        shortages = []
+
+        for i, row in df_sub.iterrows():
+            pedido = row['pedido_optimo_sem1_horizonte']
+            demanda = row['demanda_real']
+
+            inventario_disp = inventario_inicial + pedido
+            venta = min(inventario_disp, demanda)
+            inventario_final = inventario_disp - venta
+            shortage = max(demanda - venta, 0)
+
+            inventarios_iniciales.append(inventario_inicial)
+            inventarios_disponibles.append(inventario_disp)
+            ventas.append(venta)
+            inventarios_finales.append(inventario_final)
+            shortages.append(shortage)
+
+            inventario_inicial = inventario_final
+
+        idxs = df_sub.index
+        df.loc[idxs, 'inventario_inicial_real'] = inventarios_iniciales
+        df.loc[idxs, 'inventario_disp'] = inventarios_disponibles
+        df.loc[idxs, 'ventas_reales'] = ventas
+        df.loc[idxs, 'inventario_final_real'] = inventarios_finales
+        df.loc[idxs, 'shortage_real'] = shortages
 
     df['binaria_ordenar'] = (df['pedido_optimo_sem1_horizonte'] > 1e-6).astype(int)
     df['venta'] = df['ventas_reales'] * df['precio_optimo']
@@ -113,20 +146,29 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
 
     df_final = df[[
         'semana', 'tienda', 'producto', 'demanda_real', 
-        'inventario_disponible', 'precio_optimo', 'pedido_optimo_sem1_horizonte',
+        'inventario_disp', 'precio_optimo', 'pedido_optimo_sem1_horizonte',
         'shortage_real', 'costo_var', 'costo_fijo', 'binaria_ordenar',
         'venta', 'costo_orden', 'costo_orden_fijo', 'costo_dem_ins', 'costo_inv'
     ]].copy()
 
     df_final.rename(columns={
-        'inventario_disponible': 'inventario_disp',
         'pedido_optimo_sem1_horizonte': 'orden_inv_opt',
         'shortage_real': 'demanda_insatisfecha'
     }, inplace=True)
 
+    # 🔁 LIMPIAR Y REDONDEAR COLUMNAS NUMÉRICAS
+    columnas_redondear = [
+        'orden_inv_opt', 'venta', 'costo_orden', 
+        'costo_orden_fijo', 'costo_inv', 'costo_dem_ins'
+    ]
+
+    for col in columnas_redondear:
+        df_final[col] = df_final[col].apply(lambda x: 0 if abs(x) < 1e-6 else round(x, 2))
+
+    os.makedirs("resultados", exist_ok=True)
     if exportar_csv:
         df_final.to_csv(OUTPUT_FILE, sep=';', decimal=',', index=False, encoding='utf-8-sig')
-        print(f"Resultado detallado guardado en: {OUTPUT_FILE}\n")
+        print(f"✅ Resultado detallado guardado en: {OUTPUT_FILE}\n")
 
     totales = df_final[['venta', 'costo_orden', 'costo_orden_fijo', 'costo_inv', 'costo_dem_ins']].sum()
     utilidad_total = totales['venta'] - totales[['costo_orden', 'costo_orden_fijo', 'costo_inv', 'costo_dem_ins']].sum()
@@ -143,5 +185,6 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
 
     return utilidad_total, df_final.groupby('semana')['venta'].sum()
 
+# Punto de entrada si se ejecuta directamente
 if __name__ == "__main__":
     calcular_utilidad_total()
