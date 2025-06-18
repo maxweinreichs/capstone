@@ -5,6 +5,34 @@ from historical_prices import load_historical_prices, get_historical_prices_matr
 _precios_historicos_global = None
 DEFAULT_COSTO_TRANSPORTE = 3.8 # Definido como un default aquí
 
+# ===== SISTEMA DE CONTROL DE SEEDS =====
+_GLOBAL_PARTICLE_SEED = None
+_SEED_COUNTER = 0
+
+def set_global_particle_seed(seed):
+    """Establece el seed global para la generación de partículas."""
+    global _GLOBAL_PARTICLE_SEED, _SEED_COUNTER
+    _GLOBAL_PARTICLE_SEED = seed
+    _SEED_COUNTER = 0
+    print(f"🎲 Seed global de partículas establecido: {seed}")
+
+def get_next_deterministic_seed():
+    """Obtiene el siguiente seed determinístico en la secuencia."""
+    global _GLOBAL_PARTICLE_SEED, _SEED_COUNTER
+    if _GLOBAL_PARTICLE_SEED is None:
+        raise ValueError("Debe establecer el seed global primero con set_global_particle_seed()")
+    
+    # Generar seed determinístico basado en el seed global y contador
+    deterministic_seed = (_GLOBAL_PARTICLE_SEED + _SEED_COUNTER) % (2**32 - 1)
+    _SEED_COUNTER += 1
+    return deterministic_seed
+
+def reset_seed_counter():
+    """Reinicia el contador de seeds (para debugging/testing)."""
+    global _SEED_COUNTER
+    _SEED_COUNTER = 0
+# ===== FIN SISTEMA DE CONTROL DE SEEDS =====
+
 def initialize_historical_prices():
     global _precios_historicos_global
     if _precios_historicos_global is None:
@@ -13,19 +41,27 @@ def initialize_historical_prices():
     return _precios_historicos_global
 
 def _generate_prices_for_store0(base_prices_store0, variation_factor, n_productos):
-    """Helper para generar precios de la tienda 0."""
+    """Helper para generar precios de la tienda 0 con seed controlado."""
     if base_prices_store0 is None: # Fallback si no hay precios base
         base_prices_store0 = np.full((n_productos,), 30.0) # Vector para tienda 0
         print("      ⚠️ Usando precios default (30.0) para tienda 0 en _generate_prices_for_store0")
 
+    # SEED CONTROLADO: Usar seed determinístico
+    seed = get_next_deterministic_seed()
+    np.random.seed(seed)
+    
     variation_range_t0 = 1.0 + variation_factor
     variation_t0 = np.random.uniform(1.0 - variation_factor, variation_range_t0, size=(n_productos,))
     return base_prices_store0 * variation_t0
 
 def _apply_arbitrage_constraint(particle_matrix, costo_transporte_param):
-    """Aplica la restricción de arbitraje a las tiendas > 0 basadas en la tienda 0."""
+    """Aplica la restricción de arbitraje a las tiendas > 0 basadas en la tienda 0 con seed controlado."""
     n_productos, n_tiendas = particle_matrix.shape
     if n_tiendas > 1:
+        # SEED CONTROLADO: Usar seed determinístico para esta operación
+        seed = get_next_deterministic_seed()
+        np.random.seed(seed)
+        
         precios_referencia_tienda0 = particle_matrix[:, 0]
         for tienda_idx in range(1, n_tiendas):
             for prod_idx in range(n_productos):

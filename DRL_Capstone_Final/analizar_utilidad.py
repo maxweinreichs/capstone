@@ -6,6 +6,19 @@ import numpy as np
 TASA_COSTO_INVENTARIO = 0.10
 TASA_PENALIDAD_SHORTAGE = 0.10
 
+# --- CONTROL DE SEEDS PARA ANÁLISIS FINAL ---
+_ANALIZAR_UTILIDAD_SEED = None
+
+def set_analizar_utilidad_seed(seed):
+    """Establece el seed para las simulaciones de demanda real en análisis final."""
+    global _ANALIZAR_UTILIDAD_SEED
+    _ANALIZAR_UTILIDAD_SEED = seed
+    print(f"🎲 Seed para análisis de utilidad establecido: {seed}")
+
+def get_analizar_utilidad_seed():
+    """Obtiene el seed actual para análisis de utilidad."""
+    return _ANALIZAR_UTILIDAD_SEED
+
 # Archivos
 DATOS_MODELO_FILE = "resultados/Planificacion_Semanal_Optima_PF.csv"
 PARAMETROS_FILE = "parametros/General_Parameters.csv"
@@ -34,7 +47,15 @@ def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, gua
     """
     Simula demanda real a partir de los parámetros mu y sigma, y la guarda como CSV.
     Si el archivo ya existe, agrega los nuevos datos al final.
+    IMPORTANTE: Usa seed controlado para reproducibilidad.
     """
+    global _ANALIZAR_UTILIDAD_SEED
+    
+    # CONTROL DE SEED CRÍTICO: Usar seed determinístico basado en semana
+    seed_demanda = (_ANALIZAR_UTILIDAD_SEED + semana * 1000) if _ANALIZAR_UTILIDAD_SEED is not None else (12345 + semana * 1000)
+    np.random.seed(seed_demanda)
+    print(f"    🎲 Simulando demanda real para semana {semana} con seed: {seed_demanda}")
+    
     registros = []
 
     for (q, l, t_h), mu in mu_dict.items():
@@ -70,7 +91,7 @@ def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, gua
         df_total = df_nueva
 
     df_total.to_csv(ruta_csv, index=False)
-    print(f"✅ Demanda real simulada guardada en {ruta_csv}")
+    # print(f"✅ Demanda real simulada guardada en {ruta_csv}")  # Comentado para reducir spam
 
 def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETROS_FILE, exportar_csv=True):
     print("Cargando archivos...")
