@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
 
-# --- Cargar archivos ---
+#carga archivos
 kpis_base = pd.read_excel("comparación/KPIs_2025_Sim_4_Semanas.xlsx", sheet_name="Resumen KPIs")
 df_politica = pd.read_excel("comparación/resultados_optimizacion_saa_Enero2025_s10_t4_TL600_SL95_UnmetCost.xlsx", sheet_name="Politica_Optima_Enero_SAA")
 
-# --- Cargar demanda real ---
+#carga demanda real
 file_path = "comparación/Datos_v1.xlsx"
 df_t1 = pd.read_excel(file_path, sheet_name="Datos Tienda 1", skiprows=5)
 df_t2 = pd.read_excel(file_path, sheet_name="Datos tienda 2", skiprows=5)
@@ -22,7 +22,7 @@ for i in range(10):
     demanda_real["Tienda 1"][product_names[i]] = pd.to_numeric(df_t1_4sem.iloc[:, 2*i + 2], errors='coerce')
     demanda_real["Tienda 2"][product_names[i]] = pd.to_numeric(df_t2_4sem.iloc[:, 2*i + 2], errors='coerce')
 
-# --- Parámetros de costo ---
+#parametros de costo
 costo_unitario = {
     f"Producto {i+1}": c for i, c in enumerate([
         28.792, 20.792, 31.992, 52.792, 25.592, 44.8, 62.993, 46.4925, 32.3919, 17.592
@@ -34,7 +34,7 @@ costo_fijo_orden = {
     ])
 }
 
-# --- KPI desde política SAA usando demanda real ---
+#kpi desde politica SAA usando demanda real
 def calcular_kpis_desde_politica(df_politica, demanda_real_dict):
     productos = sorted(df_politica['producto'].unique())
     semanas = df_politica['semana_plan'].max()
@@ -49,7 +49,7 @@ def calcular_kpis_desde_politica(df_politica, demanda_real_dict):
         precio_prom = df_p['precio_optimo_saa'].mean()
         ordenes_realizadas = df_p[df_p["orden_optima_saa"] > 0].shape[0]
 
-        # Separar por tienda
+        #separar por tienda
         ventas_t1 = df_p[df_p["tienda"] == 1]['prom_ventas_saa'].values
         ventas_t2 = df_p[df_p["tienda"] == 2]['prom_ventas_saa'].values
 
@@ -97,7 +97,7 @@ def calcular_kpis_desde_politica(df_politica, demanda_real_dict):
         "Costo Demanda Insatisfecha": costo_total_q
     }
 
-# --- KPIs agregados (por total) ---
+#kpi agregados 
 kpis_base_total = kpis_base.drop(columns=["Tienda"]).sum(numeric_only=True)
 kpis_base_total["Nivel de Servicio (%)"] = (kpis_base["Demanda Satisfecha"].sum() / kpis_base["Demanda Total"].sum()) * 100
 kpis_base_total["Días Prom. Inventario"] = kpis_base["Días Prom. Inventario"].mean()
@@ -106,7 +106,7 @@ kpis_base_total_df = pd.DataFrame(kpis_base_total).T
 kpis_saa_total = calcular_kpis_desde_politica(df_politica, demanda_real)
 kpis_saa_total_df = pd.DataFrame(kpis_saa_total, index=[0])
 
-# --- Comparación global ---
+#comparacion global
 def comparar_kpis(df_base, df_saa):
     row_base = df_base.iloc[0]
     row_saa = df_saa.iloc[0]
@@ -128,10 +128,10 @@ def comparar_kpis(df_base, df_saa):
 
 df_comp = comparar_kpis(kpis_base_total_df, kpis_saa_total_df)
 
-# --- Guardar archivos ---
+#guardado archivos
 with pd.ExcelWriter("comparación/Comparacion_KPIs_Totales.xlsx") as writer:
     df_comp.to_excel(writer, sheet_name="Comparación Total", index=False)
     kpis_base_total_df.to_excel(writer, sheet_name="Total Caso Base", index=False)
     kpis_saa_total_df.to_excel(writer, sheet_name="Total Modelo SAA", index=False)
 
-print("✅ Comparación total guardada en: comparación/Comparacion_KPIs_Totales.xlsx")
+print("Comparación total guardada en: comparación/Comparacion_KPIs_Totales.xlsx")
