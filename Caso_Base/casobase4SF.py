@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-# --- Cargar datos ---
+#carga datos
 file_path = "Caso_Base/Datos_v1.xlsx"
 xls = pd.ExcelFile(file_path)
 
@@ -13,7 +13,7 @@ df_t2['Fecha'] = pd.to_datetime(df_t2.iloc[:, 1], errors='coerce')
 
 product_names = [f"Producto {i+1}" for i in range(10)]
 
-# --- Cálculo de stock base y precio promedio con TODO el dataset ---
+#calculo stock base y precio promedio con todo el dataset
 stock_base_t1, price_avg_t1 = {}, {}
 stock_base_t2, price_avg_t2 = {}, {}
 
@@ -29,7 +29,7 @@ def calculate_base_policy(df, stock_base, price_avg):
 calculate_base_policy(df_t1, stock_base_t1, price_avg_t1)
 calculate_base_policy(df_t2, stock_base_t2, price_avg_t2)
 
-# --- Supuestos de costos ---
+#supuestos de costos
 costo_unitario = {
     f"Producto {i+1}": c for i, c in enumerate([
         28.792, 20.792, 31.992, 52.792, 25.592, 44.8, 62.993, 46.4925, 32.3919, 17.592
@@ -41,7 +41,7 @@ costo_fijo_orden = {
     ])
 }
 
-# --- Simulación de 4 semanas futuras ---
+#simulacion 4 semanas futuras
 def simular_4_semanas_futuras(stock_base_dict, precios_prom):
     productos = list(stock_base_dict.keys())
     semanas = 4
@@ -53,10 +53,10 @@ def simular_4_semanas_futuras(stock_base_dict, precios_prom):
 
     for t in range(semanas):
         for p in productos:
-            demanda = np.random.poisson(lam=stock_base_dict[p] * 0.7)  # demanda simulada conservadora
+            demanda = np.random.poisson(lam=stock_base_dict[p] * 0.7)  
             inv_ant = inventario[p][-1]
 
-            # --- Precio dinámico basado en inventario ---
+            #precio dinamico basado en inventario
             if inv_ant > 1.2 * stock_base_dict[p]:
                 precio = precios_prom[p] * 0.8
             elif inv_ant < 0.8 * stock_base_dict[p]:
@@ -68,7 +68,7 @@ def simular_4_semanas_futuras(stock_base_dict, precios_prom):
             quiebre = max(demanda - inv_ant, 0)
             stock_post = inv_ant - vendido
 
-            # --- Política de reabastecimiento parcial escalonada ---
+            #politica de reabastecimiento parcial escalonada
             if stock_post < 0.6 * stock_base_dict[p]:
                 nueva_orden = stock_base_dict[p]
             elif stock_post < 0.9 * stock_base_dict[p]:
@@ -89,11 +89,11 @@ def simular_4_semanas_futuras(stock_base_dict, precios_prom):
         pd.DataFrame(ingresos)
     )
 
-# --- Simulación ---
+#simulacion
 q_t1, o_t1, precios_t1, ingresos_t1 = simular_4_semanas_futuras(stock_base_t1, price_avg_t1)
 q_t2, o_t2, precios_t2, ingresos_t2 = simular_4_semanas_futuras(stock_base_t2, price_avg_t2)
 
-# --- Calcular KPIs ---
+#calculo KPIs
 def calcular_kpis_dynamic(quiebres_df, ordenes_df, precios_df, ingresos_df, stock_base, tienda):
     productos = quiebres_df.columns
     semanas = len(quiebres_df)
@@ -149,12 +149,12 @@ def calcular_kpis_dynamic(quiebres_df, ordenes_df, precios_df, ingresos_df, stoc
         "Costo Demanda Insatisfecha": costo_total_q
     }
 
-# --- Calcular y guardar KPIs ---
+#calculo y guardado KPIs
 kpi_t1 = calcular_kpis_dynamic(q_t1, o_t1, precios_t1, ingresos_t1, stock_base_t1, "Tienda 1")
 kpi_t2 = calcular_kpis_dynamic(q_t2, o_t2, precios_t2, ingresos_t2, stock_base_t2, "Tienda 2")
 df_kpis = pd.DataFrame([kpi_t1, kpi_t2])
 
-# --- Guardar Excel completo ---
+#guardado excel completo
 with pd.ExcelWriter("Caso_Base/KPIs_Forecast_4_Semanas.xlsx", engine="xlsxwriter") as writer:
     df_kpis.to_excel(writer, sheet_name="Resumen KPIs", index=False)
 
@@ -176,7 +176,7 @@ with pd.ExcelWriter("Caso_Base/KPIs_Forecast_4_Semanas.xlsx", engine="xlsxwriter
     precios_t2.to_excel(writer, sheet_name="Precios T2", index=False)
     ingresos_t2.to_excel(writer, sheet_name="Ingresos T2", index=False)
 
-# --- Consola ---
-print("\n✅ Archivo generado: KPIs_Forecast_4_Semanas.xlsx")
+#print
+print("\n Archivo generado: KPIs_Forecast_4_Semanas.xlsx")
 print("\nResumen de KPI’s de simulación futura (4 semanas):\n")
 print(df_kpis.round(2))
