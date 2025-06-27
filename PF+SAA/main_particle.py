@@ -6,7 +6,7 @@ from utils import guardar_precios_optimos_csv
 from optimizador import calcular_resultados_optimizacion, load_static_params_once, set_global_eval_seed
 from particle_filter import particle_filter_optimization_multi_resample
 
-# NUEVO: importar el módulo de análisis
+#importar modulo analisis de utilidad
 from analizar_utilidad import calcular_utilidad_total, guardar_demanda_real_simulada
 
 def optimize_prices_for_week(optimizer_caller, ruta_datos, n_productos, n_tiendas, static_params, current_inventory, semana_idx):
@@ -15,32 +15,31 @@ def optimize_prices_for_week(optimizer_caller, ruta_datos, n_productos, n_tienda
     Now uses historical prices as starting point based on the week number.
     """
     print(f"  Optimizando precios usando filtro de partículas con resampling múltiple...")
-    print(f"  📅 Semana objetivo: {semana_idx} - Usando precios históricos como punto de partida")
+    print(f"  Semana objetivo: {semana_idx} - Usando precios históricos como punto de partida")
     
-    N_PARTICLES = 50  # Reduced from 1000 to 50 for more efficient exploration with liberal policy
+    #cantidad de particulas
+    N_PARTICLES = 50  
     
-    # Use base prices from static parameters (FALLBACK ONLY - historical prices will be used when available)
+    #precios base
     precios_base = static_params["precios_base_np"]
     
-    # Run particle filter optimization with multi-stage resampling
-    # IMPORTANTE: Ahora pasamos semana_idx para que use precios históricos
     best_prices, best_score = particle_filter_optimization_multi_resample(
         n_particles=N_PARTICLES,
         n_productos=n_productos,
         n_tiendas=n_tiendas,
-        precios_base=precios_base,  # Solo usado como fallback
+        precios_base=precios_base,  
         evaluate_fn=optimizer_caller,
-        semana_idx=semana_idx  # CLAVE: Esto permite usar precios históricos
+        semana_idx=semana_idx  
     )
     
-    # Calculate detailed results for the best particle
+    #se calculan los resultados para la mejor partícula
     resultados_detallados = calcular_resultados_optimizacion(
         best_prices, current_inventory,
         semana_idx, ruta_datos, n_productos, n_tiendas,
         use_eval_seed=True
     )
     
-    # Print detailed utility information
+    #print resultados 
     print("\n=== Resultados Detallados de la Mejor Partícula ===")
     print(f"  Claves disponibles en resultados_detallados: {list(resultados_detallados.keys())}")
     print(f"  Utilidad Total del Horizonte: {resultados_detallados['utilidad_total_horizonte']:.2f}")
@@ -89,7 +88,7 @@ def main():
             use_eval_seed=True
         )
 
-        # NUEVO: guardar demanda real simulada + estimada
+        #guardar demanda real simulada
         guardar_demanda_real_simulada(
             semana=semana_idx_año,
             mu_dict=resultados_detallados_semana["mu_calculado_horizonte"],
@@ -120,7 +119,7 @@ def main():
     print(f"\n¡Planificación secuencial completada para {N_SEMANAS_PLANIFICACION} semanas!")
     print(f"Resultados detallados guardados en: {ruta_salida_csv}")
 
-    # NUEVO: Llamar a analizar_utilidad
+    #analizar utilidad
     print("\n=== Análisis Final de Utilidad ===")
     utilidad_total, utilidad_por_semana = calcular_utilidad_total(ruta_salida_csv)
     print(f"Utilidad total obtenida: ${utilidad_total:,.0f}")
