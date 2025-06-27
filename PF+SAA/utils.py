@@ -9,23 +9,18 @@ def read_csv_with_comma_decimal(filepath, delimiter=';'):
     df = pd.read_csv(filepath, delimiter=delimiter)
     for col in df.columns:
         if df[col].dtype == 'object':
-            # Intentar reemplazar coma por punto y convertir a float
+            #raamplzar coma por punto y convertir a float
             try:
-                # Primero asegurar que todos los valores son strings
                 df[col] = df[col].astype(str).str.replace(',', '.', regex=False).astype(float)
             except ValueError:
-                # Si falla, la columna podría no ser numérica o tener otros formatos
                 pass
     return df
 
 def cargar_costos_unitarios_desde_general_params(ruta_general_params_csv, n_productos=10):
     """Carga los costos unitarios c_q desde General_Parameters.csv."""
-    # Leer usando punto como decimal, ya que es el formato más común para valores numéricos
-    # si están mezclados, read_csv_with_comma_decimal es más robusto para la columna 'valor'
     
     df_params_gen = pd.read_csv(ruta_general_params_csv, delimiter=';')
     params_gen_dict = {}
-    # Convertir la columna 'valor' si tiene comas como decimales
     if df_params_gen['valor'].dtype == 'object':
         try:
             df_params_gen['valor'] = df_params_gen['valor'].astype(str).str.replace(',', '.', regex=False).astype(float)
@@ -40,7 +35,7 @@ def cargar_costos_unitarios_desde_general_params(ruta_general_params_csv, n_prod
         costo_val = params_gen_dict.get(f'c_{q}')
         if costo_val is None:
             raise ValueError(f"Costo c_{q} no encontrado en {ruta_general_params_csv}")
-        costos[q] = float(costo_val) # Ya debería ser float por la conversión anterior
+        costos[q] = float(costo_val) 
     return costos
 
 def cargar_precios_iniciales_csv(ruta_precios_csv, n_productos=10, n_tiendas=2):
@@ -49,7 +44,6 @@ def cargar_precios_iniciales_csv(ruta_precios_csv, n_productos=10, n_tiendas=2):
     Formato esperado: L filas, la primera columna es etiqueta, las siguientes Q son precios.
     Los precios en el CSV usan ',' como decimal.
     """
-    # Leer el archivo, todas las columnas como string inicialmente para manejar decimales con coma
     df_precios_raw = pd.read_csv(ruta_precios_csv, header=None, delimiter=';', dtype=str)
     
     precios_iniciales_np = np.zeros((n_productos, n_tiendas), dtype=np.float32)
@@ -58,7 +52,6 @@ def cargar_precios_iniciales_csv(ruta_precios_csv, n_productos=10, n_tiendas=2):
         raise ValueError(f"Datos insuficientes para {n_tiendas} tiendas en {ruta_precios_csv}. Encontradas: {len(df_precios_raw)} filas.")
 
     for l_idx in range(n_tiendas):
-        # Precios están desde la columna 1 en adelante
         precios_tienda_str = df_precios_raw.iloc[l_idx, 1:].values 
         
         if len(precios_tienda_str) < n_productos:
@@ -70,7 +63,7 @@ def cargar_precios_iniciales_csv(ruta_precios_csv, n_productos=10, n_tiendas=2):
             except ValueError:
                 raise ValueError(f"Error convirtiendo precio '{precios_tienda_str[q_idx]}' a float para producto {q_idx+1}, tienda {l_idx+1}.")
                 
-    return precios_iniciales_np # Shape: (n_productos, n_tiendas)
+    return precios_iniciales_np 
 
 def guardar_precios_optimos_csv(precios_optimos_np, ruta_archivo_salida, n_productos=10, n_tiendas=2):
     """
@@ -84,7 +77,7 @@ def guardar_precios_optimos_csv(precios_optimos_np, ruta_archivo_salida, n_produ
     data_to_save = []
     for l_idx in range(n_tiendas):
         etiqueta_tienda = f"Precios Optimos Tienda {l_idx + 1}"
-        # Convertir precios a string con coma decimal
+        #precios a string con coma decimal
         precios_str = [f"{p:.2f}".replace('.', ',') for p in precios_optimos_np[:, l_idx]]
         data_to_save.append([etiqueta_tienda] + precios_str)
         
