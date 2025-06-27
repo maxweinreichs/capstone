@@ -9,7 +9,7 @@ from utils import read_csv_with_comma_decimal, cargar_precios_iniciales_csv
 
 CACHED_STATIC_PARAMS = None
 GLOBAL_EVAL_SEED = None 
-COSTO_TRANSPORTE_ENTRE_TIENDAS = 3.8e6  # 3.8 millones como constante
+COSTO_TRANSPORTE_ENTRE_TIENDAS = 3.8e6  
 
 def set_global_eval_seed(seed): 
     global GLOBAL_EVAL_SEED
@@ -92,13 +92,12 @@ def prepare_dynamic_params(precios_semana_actual_np, semana_año_actual_optimiza
     mu_calculated_horizon = {}
     sigma_calculated_horizon = {}
 
-    # Agregar restricción de no arbitrariedad
+    #restriccion de no arbitrariedad
     for q_idx in range(Q):
-        for t_h in [1]:  # Solo para la semana actual
+        for t_h in [1]: 
             precio_max = max(precios_semana_actual_np[q_idx, l] for l in range(L))
             precio_min = min(precios_semana_actual_np[q_idx, l] for l in range(L))
             if precio_max - precio_min > COSTO_TRANSPORTE_ENTRE_TIENDAS:
-                # Ajustar precios para cumplir con la restricción
                 precio_promedio = np.mean(precios_semana_actual_np[q_idx, :])
                 for l in range(L):
                     precios_semana_actual_np[q_idx, l] = precio_promedio
@@ -213,12 +212,12 @@ def solve_optimization_problem(p_qlt_horizon, mu_calculated_horizon, sigma_calcu
                 
                 model.addConstr(I_inv[q_idx,l_idx,t_h] == inventario_disp_antes_demanda - (1/N if N > 0 else 1) * sum_Y_para_promedio)
     
-    # ========== COSTOS MODIFICADOS ========== #
+    #costos modificados
     expected_revenue = gp.quicksum(Y_sales[q,l,t,i] * p_qlt_horizon[q,l,t] for q in range(Q) for l in range(L) for t in range(1,T_horizon+1) for i in range(N)) / (N if N > 0 else 1)
     expected_ordering_cost = gp.quicksum(c_cost[q] * o[q,l,t] for q in range(Q) for l in range(L) for t in range(1,T_horizon+1))
     expected_fixed_cost = gp.quicksum(K_cost[q] * y_bin[q,l,t] for q in range(Q) for l in range(L) for t in range(1,T_horizon+1))
     
-    # Costo de inventario (10% del costo unitario)
+    #costo de inventario
     expected_inventory_cost = gp.quicksum(
         0.1 * c_cost[q] * I_inv[q,l,t]
         for q in range(Q)
@@ -226,7 +225,7 @@ def solve_optimization_problem(p_qlt_horizon, mu_calculated_horizon, sigma_calcu
         for t in range(1, T_horizon+1)
     )
     
-    # Costo de demanda insatisfecha (10% del precio de venta)
+    #costo de demanda insatisfecha 
     expected_shortage_cost = gp.quicksum(
         0.1 * p_qlt_horizon[q,l,t] * U_shortage[q,l,t,i]
         for q in range(Q)
@@ -243,7 +242,6 @@ def solve_optimization_problem(p_qlt_horizon, mu_calculated_horizon, sigma_calcu
         - expected_inventory_cost,
         GRB.MAXIMIZE
     )
-    # ========== FIN COSTOS MODIFICADOS ========== #
     
     model.optimize()
     
