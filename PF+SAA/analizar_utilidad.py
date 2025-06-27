@@ -1,12 +1,11 @@
 import pandas as pd
 import os
 import numpy as np
-
-# --- CONSTANTES ---
+#Constantes
 TASA_COSTO_INVENTARIO = 0.10
 TASA_PENALIDAD_SHORTAGE = 0.10
 
-# Archivos
+#carga de archivos
 DATOS_MODELO_FILE = "resultados/Planificacion_Semanal_Optima_PF.csv"
 PARAMETROS_FILE = "parametros/General_Parameters.csv"
 OUTPUT_FILE = "resultados/resultados_detallados_final.csv"
@@ -72,7 +71,7 @@ def guardar_demanda_real_simulada(semana, mu_dict, sigma_dict, n_muestras=3, gua
         df_total = df_nueva
 
     df_total.to_csv(ruta_csv, index=False)
-    print(f"✅ Demanda real simulada guardada en {ruta_csv}")
+    print(f"Demanda real simulada guardada en {ruta_csv}")
     
 
 def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETROS_FILE, exportar_csv=True):
@@ -85,14 +84,14 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
     df = pd.merge(df_modelo, df_costos, on='producto', how='left')
 
     if os.path.exists(DEMANDA_REAL_PATH):
-        print("✅ Usando demanda real desde CSV...")
+        print("Usando demanda real desde CSV...")
         df_demanda_real = pd.read_csv(DEMANDA_REAL_PATH)
         df_demanda_real.rename(columns={'semana_año': 'semana', 'producto_idx': 'producto', 'tienda_idx': 'tienda'}, inplace=True)
         df = pd.merge(df, df_demanda_real[['semana', 'producto', 'tienda', 'demanda_real']], 
                       on=['semana', 'producto', 'tienda'], how='left')
         df['demanda_real'] = df['demanda_real'].fillna(df['demanda_promedio_sem1_horizonte'])
     else:
-        print("⚠️ No se encontró demanda_real.csv. Usando demanda promedio.")
+        print("No se encontró demanda_real.csv. Usando demanda promedio.")
         df['demanda_real'] = df['demanda_promedio_sem1_horizonte']
 
     df.sort_values(by=['tienda', 'producto', 'semana'], inplace=True)
@@ -156,7 +155,7 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
         'shortage_real': 'demanda_insatisfecha'
     }, inplace=True)
 
-    # 🔁 LIMPIAR Y REDONDEAR COLUMNAS NUMÉRICAS
+    #limpieza y redondeo de cols
     columnas_redondear = [
         'orden_inv_opt', 'venta', 'costo_orden', 
         'costo_orden_fijo', 'costo_inv', 'costo_dem_ins'
@@ -185,6 +184,5 @@ def calcular_utilidad_total(path_csv=DATOS_MODELO_FILE, path_parametros=PARAMETR
 
     return utilidad_total, df_final.groupby('semana')['venta'].sum()
 
-# Punto de entrada si se ejecuta directamente
 if __name__ == "__main__":
     calcular_utilidad_total()
