@@ -1,6 +1,6 @@
 """
-Experimento de Comparación de Políticas de Resampling
-Ejecuta todas las políticas con diferentes números de partículas y genera CSV con métricas.
+Experimento de Comparación de Políticas de Resampling - MISMO SEED
+Ejecuta todas las políticas con EXACTAMENTE el mismo seed para comparación completamente justa.
 """
 import numpy as np
 import pandas as pd
@@ -179,9 +179,11 @@ def ejecutar_optimizacion_con_politica(politica_nombre, n_particles, seed_global
 
 def main():
     """
-    Función principal que ejecuta el experimento completo.
+    Función principal que ejecuta el experimento completo con MISMO SEED para todas las configuraciones.
     """
-    print("🚀 INICIANDO EXPERIMENTO DE POLÍTICAS DE RESAMPLING")
+    print("🚀 INICIANDO EXPERIMENTO DE POLÍTICAS DE RESAMPLING - MISMO SEED")
+    print("=" * 80)
+    print("⚠️  TODAS LAS POLÍTICAS USARÁN EXACTAMENTE EL MISMO SEED PARA COMPARACIÓN JUSTA")
     print("=" * 80)
     
     # Configuración del experimento
@@ -189,7 +191,7 @@ def main():
     N_PRODUCTOS = 10
     N_TIENDAS = 2
     N_SEMANAS_PLANIFICACION = 4
-    SEED_BASE = 42  # Seed fijo para reproducibilidad
+    SEED_BASE = 42  # Seed fijo para TODAS las configuraciones
     
     # Configuraciones a probar
     configuraciones = [
@@ -209,7 +211,7 @@ def main():
     print(f"   Productos: {N_PRODUCTOS}")
     print(f"   Tiendas: {N_TIENDAS}")
     print(f"   Semanas: {N_SEMANAS_PLANIFICACION}")
-    print(f"   Seed Base: {SEED_BASE}")
+    print(f"   🎲 Seed ÚNICO para TODAS las configuraciones: {SEED_BASE}")
     print(f"   Total de Configuraciones: {sum(len(c['n_particulas_lista']) for c in configuraciones)}")
     print()
     
@@ -219,7 +221,7 @@ def main():
     
     # CONFIGURACIÓN GLOBAL DE SEEDS
     set_global_eval_seed(SEED_BASE)  # Para optimizador
-    set_analizar_utilidad_seed(SEED_BASE)  # NUEVO: Para simulaciones de demanda real
+    set_analizar_utilidad_seed(SEED_BASE)  # Para simulaciones de demanda real
     
     for i, config in enumerate(configuraciones, 1):
         politica = config["politica"]
@@ -232,9 +234,9 @@ def main():
         for j, n_particulas in enumerate(n_particulas_lista, 1):
             print(f"\n--- Configuración {j}/{len(n_particulas_lista)} para {politica} ---")
             
-            # MODIFICADO: Usar el mismo seed para TODAS las configuraciones
-            # Esto asegura que todas las políticas trabajen con exactamente los mismos números aleatorios
-            seed_config = SEED_BASE  # Todas las configuraciones usan el mismo seed base
+            # ✅ TODAS LAS CONFIGURACIONES USAN EL MISMO SEED
+            seed_config = SEED_BASE  # Mismo seed para TODAS las políticas y configuraciones
+            print(f"🎲 Usando seed común: {seed_config}")
             
             try:
                 # Limpiar archivos de demanda real previos
@@ -274,20 +276,21 @@ def main():
     # Guardar resultados en CSV
     df_resultados = pd.DataFrame(resultados_experimento)
     timestamp_final = datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_resultados_path = f"resultados/experimento_resampling_{timestamp_final}.csv"
+    csv_resultados_path = f"resultados/experimento_resampling_mismo_seed_{timestamp_final}.csv"
     
     os.makedirs("resultados", exist_ok=True)
     df_resultados.to_csv(csv_resultados_path, index=False, sep=';', decimal=',')
     
     print(f"\n{'🎉' * 30}")
-    print("EXPERIMENTO COMPLETADO")
+    print("EXPERIMENTO COMPLETADO - MISMO SEED")
     print(f"{'🎉' * 30}")
     print(f"⏱️  Tiempo Total del Experimento: {tiempo_total_experimento/60:.1f} minutos")
     print(f"📊 Resultados guardados en: {csv_resultados_path}")
     print(f"📈 Total de configuraciones ejecutadas: {len(resultados_experimento)}")
+    print(f"🎲 TODAS las configuraciones usaron seed: {SEED_BASE}")
     
     # Mostrar resumen de mejores resultados
-    print(f"\n📋 RESUMEN DE MEJORES UTILIDADES:")
+    print(f"\n📋 RESUMEN DE UTILIDADES (MISMO SEED):")
     if not df_resultados.empty and 'utilidad_real_total' in df_resultados.columns:
         df_valid = df_resultados[df_resultados['utilidad_real_total'] > -999999]
         if not df_valid.empty:
@@ -298,7 +301,7 @@ def main():
             print("⚠️  No se obtuvieron resultados válidos.")
     
     print(f"\n✅ Archivo de resultados: {csv_resultados_path}")
-    print("🔍 Usa este CSV para hacer tus análisis y gráficos.")
+    print("🔍 Usa este CSV para hacer tus análisis y gráficos con comparación completamente justa.")
 
 
 if __name__ == "__main__":
